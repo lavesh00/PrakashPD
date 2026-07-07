@@ -1,9 +1,13 @@
 import type {
   LoanDetail,
   MemoResponse,
+  ModelPerformanceResponse,
   NewLoanRequest,
   RescoreResponse,
   ScoreResponse,
+  SettingsResponse,
+  StressTestRequest,
+  StressTestResponse,
   SummaryResponse,
   WatchlistResponse,
   WhatIfRequest,
@@ -73,4 +77,16 @@ export function fetchLoanDetail(borrowerId: number): Promise<LoanDetail> {
 
 export function triggerRescore(): Promise<RescoreResponse> {
   return post<RescoreResponse>("/api/rescore");
+}
+
+export function fetchModelPerformance(): Promise<ModelPerformanceResponse> {
+  return get<ModelPerformanceResponse>("/api/model-performance");
+}
+
+export function runPortfolioStressTest(payload: StressTestRequest): Promise<StressTestResponse> {
+  return post<StressTestResponse>("/api/portfolio-stress-test", payload);
+}
+
+export function fetchSettings(): Promise<SettingsResponse> {
+  return get<SettingsResponse>("/api/settings");
 }

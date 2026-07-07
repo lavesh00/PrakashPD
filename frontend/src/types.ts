@@ -1,5 +1,10 @@
 export type Band = "Watch" | "Elevated" | "High";
 
+export interface ReasonCode {
+  text: string;
+  is_nlp: boolean;
+}
+
 export interface WatchlistItem {
   borrower_id: number;
   segment: string;
@@ -22,7 +27,7 @@ export interface LoanDetail {
   band: Band;
   exposure_at_risk: number;
   rm_note: string;
-  reason_codes: string[];
+  reason_codes: ReasonCode[];
   recommended_action: string;
 }
 
@@ -57,7 +62,7 @@ export interface NewLoanRequest {
 export interface ScoreResponse {
   pd_score: number;
   band: Band;
-  reason_codes: string[];
+  reason_codes: ReasonCode[];
   recommended_action: string;
 }
 
@@ -85,9 +90,59 @@ export interface MemoResponse {
   exposure_at_risk: number;
   pd_score: number;
   band: Band;
-  reason_codes: string[];
+  reason_codes: ReasonCode[];
   recommended_intervention: string;
   summary: string;
   generated_at: string;
   pdf_url: string;
+}
+
+export interface FeatureImportanceEntry {
+  feature: string;
+  importance_pct: number;
+  is_nlp: boolean;
+}
+
+export interface ModelPerformanceResponse {
+  auc: number;
+  gini: number;
+  ks_statistic: number;
+  recall_at_top_20pct: number;
+  n_train: number;
+  n_test: number;
+  test_default_rate: number;
+  band_thresholds: { high: number; elevated: number };
+  band_distribution_test: Record<string, number>;
+  feature_importance: FeatureImportanceEntry[];
+  note: string;
+}
+
+export type StressScenario = "utilization_shock" | "delinquency_shock";
+
+export interface StressTestRequest {
+  scenario: StressScenario;
+  magnitude: number;
+}
+
+export interface StressTestResponse {
+  scenario: string;
+  magnitude: number;
+  band_counts_before: Record<string, number>;
+  band_counts_after: Record<string, number>;
+  exposure_before: Record<string, number>;
+  exposure_after: Record<string, number>;
+  newly_high_count: number;
+  newly_high_exposure: number;
+  total_exposure: number;
+}
+
+export interface SettingsResponse {
+  band_thresholds: { high: number; elevated: number };
+  gbm_blend_weight: number;
+  cox_blend_weight: number;
+  cox_horizon_duration: number;
+  embedding_model: string;
+  segments: string[];
+  total_borrowers: number;
+  last_scored_at: number;
 }

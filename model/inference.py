@@ -165,7 +165,7 @@ class ScoringEngine:
             "band": band,
             "gbm_proba": gbm_proba,
             "cox_risk": cox_risk,
-            "feature_row": engineered,
+            "feature_row": {**engineered, "rm_note": rm_note},
             "X_full": X_full,
             "rm_note": rm_note,
         }
@@ -177,7 +177,11 @@ class ScoringEngine:
             return "Elevated"
         return "Watch"
 
-    def reason_codes(self, X_full: pd.DataFrame, context: dict, top_k: int = 4) -> list[str]:
+    def reason_codes(self, X_full: pd.DataFrame, context: dict, top_k: int = 4) -> list[dict]:
+        """Returns {"text": ..., "is_nlp": ...} rather than plain strings, so
+        the frontend can flag which reason codes came from the unstructured
+        RM-note signal instead of the structured features, without having to
+        guess from the wording."""
         from model.explain import _reason_for_feature  # local import avoids a cycle at module load
 
         shap_values = self.tree_explainer.shap_values(X_full)
@@ -189,7 +193,8 @@ class ScoringEngine:
         for idx in order:
             feature = self.feature_cols[idx]
             value = X_full.iloc[0][feature]
-            reasons.append(_reason_for_feature(feature, value, shap_row[idx], context))
+            text = _reason_for_feature(feature, value, shap_row[idx], context)
+            reasons.append({"text": text, "is_nlp": feature in self.nlp_features})
         return reasons
 
     # ---------- existing-loan lookup ----------
@@ -237,6 +242,99 @@ class ScoringEngine:
             "band": bands,
         })
         return result
+
+    # ---------- model performance / global feature importance ----------
+
+    def feature_importance(self, top_n: int = 15) -> list[dict]:
+        """Real LightGBM gain importance, not a hand-picked list. Used by the
+        Model performance page so the "what drives the model" view is backed
+        by the actual trained booster, same as the per-loan SHAP explanations."""
+        gains = self.booster.feature_importance(importance_type="gain")
+        total = float(gains.sum()) or 1.0
+        pairs = sorted(zip(self.feature_cols, gains), key=lambda p: -p[1])
+        return [
+            {"feature": name, "importance_pct": float(gain) / total * 100, "is_nlp": name in self.nlp_features}
+            for name, gain in pairs[:top_n]
+        ]
+
+    # ---------- portfolio stress test ----------
+
+    def _engineer_vectorized(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Vectorized version of engineer_features for batch stress testing.
+        Same formulas, applied across the whole book at once instead of a
+        single row, so a stress scenario re-derives the engineered features
+        the model actually relies on rather than only touching raw columns."""
+        df = df.copy()
+        limit = df["LIMIT_BAL"].replace(0, np.nan)
+        bills = df[_BILL_COLS]
+        pay_amts = df[_PAY_AMT_COLS]
+        pays = df[_PAY_STATUS_COLS]
+
+        df["util_ratio_1"] = (bills["BILL_AMT1"] / limit).clip(-2, 5).fillna(0)
+        df["avg_util_ratio"] = (bills.mean(axis=1) / limit).clip(-2, 5).fillna(0)
+
+        import warnings
+
+        with np.errstate(divide="ignore", invalid="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            ratio_matrix = pay_amts.to_numpy() / np.where(bills.to_numpy() == 0, np.nan, bills.to_numpy())
+            avg_pay_ratio = np.nanmean(ratio_matrix, axis=1)
+        df["avg_pay_ratio"] = np.clip(np.nan_to_num(avg_pay_ratio, nan=0.0), -5, 5)
+
+        df["months_delinquent"] = (pays > 0).sum(axis=1)
+        df["max_delinquency"] = pays.max(axis=1)
+        df["delinquency_trend"] = pays["PAY_1"] - pays["PAY_6"]
+        df["bill_trend"] = bills["BILL_AMT1"] - bills["BILL_AMT6"]
+        return df
+
+    def stress_test(self, scenario: str, magnitude: float) -> pd.DataFrame:
+        """Applies a book-wide stress scenario to the real feature book and
+        genuinely re-runs the trained GBM + Cox + isotonic pipeline over every
+        row, same as score_full_book. Two scenarios, both simple and honest
+        rather than a fabricated macro model:
+          - utilization_shock: outstanding balances rise by `magnitude` percent
+            (a spending-up / credit-line-draw scenario), LIMIT_BAL unchanged.
+          - delinquency_shock: repayment status shifts `magnitude` notches
+            worse across the board (a broad ability-to-pay shock), clipped at 8.
+        RM notes are not re-generated under stress, so the NLP features are
+        left as originally computed; only structured features move.
+        """
+        df = self.feature_book.reset_index(drop=True).copy()
+
+        if scenario == "utilization_shock":
+            factor = 1 + magnitude / 100
+            for c in _BILL_COLS:
+                df[c] = df[c] * factor
+        elif scenario == "delinquency_shock":
+            for c in _PAY_STATUS_COLS:
+                df[c] = (df[c] + magnitude).clip(upper=8)
+        else:
+            raise ValueError(f"unknown stress scenario: {scenario}")
+
+        df = self._engineer_vectorized(df)
+        X_full = df[self.feature_cols].copy()
+        for c in self.categorical_features:
+            X_full[c] = X_full[c].astype(self._category_dtypes[c])
+
+        gbm_proba = self.booster.predict(X_full)
+        cox_z = (df[self.cox_covariates] - self.cox_mean) / self.cox_std
+        surv = self.cph.predict_survival_function(cox_z, times=[self.horizon]).T
+        cox_risk = (1 - surv.iloc[:, 0]).to_numpy()
+
+        gbm_rank = np.clip(np.searchsorted(self.gbm_train_ref, gbm_proba) / (len(self.gbm_train_ref) - 1), 0, 1)
+        cox_rank = np.clip(np.searchsorted(self.cox_train_ref, cox_risk) / (len(self.cox_train_ref) - 1), 0, 1)
+        blend = self.gbm_weight * gbm_rank + self.cox_weight * cox_rank
+        calibrated = self.isotonic.predict(blend)
+        pd_score = calibrated * 100
+        bands = np.where(
+            pd_score >= self.high_cut, "High",
+            np.where(pd_score >= self.elevated_cut, "Elevated", "Watch"),
+        )
+        return pd.DataFrame({
+            "borrower_id": df["borrower_id"].to_numpy(),
+            "pd_score": pd_score,
+            "band": bands,
+        })
 
     # ---------- what-if: EMI-formula translation layer ----------
 

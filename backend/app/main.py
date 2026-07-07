@@ -6,9 +6,13 @@ from . import memo as memo_module
 from .schemas import (
     LoanDetail,
     MemoResponse,
+    ModelPerformanceResponse,
     NewLoanRequest,
     RescoreResponse,
     ScoreResponse,
+    SettingsResponse,
+    StressTestRequest,
+    StressTestResponse,
     SummaryResponse,
     WatchlistResponse,
     WhatIfRequest,
@@ -102,3 +106,18 @@ def download_memo(memo_id: str):
 @app.post("/api/rescore", response_model=RescoreResponse)
 def rescore():
     return service.rescore()
+
+
+@app.get("/api/model-performance", response_model=ModelPerformanceResponse)
+def model_performance():
+    return service.model_performance()
+
+
+@app.post("/api/portfolio-stress-test", response_model=StressTestResponse)
+def portfolio_stress_test(req: StressTestRequest):
+    return service.portfolio_stress_test(req.scenario, req.magnitude)
+
+
+@app.get("/api/settings", response_model=SettingsResponse)
+def settings():
+    return service.settings()

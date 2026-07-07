@@ -29,8 +29,8 @@ def _lower_first(s: str) -> str:
     return s[0].lower() + s[1:] if s else s
 
 
-def build_summary(borrower_id: int, segment: str, exposure: float, pd_score: float, band: str, reasons: list[str]) -> str:
-    top_reasons = "; ".join(_lower_first(r.rstrip(".")) for r in reasons[:2])
+def build_summary(borrower_id: int, segment: str, exposure: float, pd_score: float, band: str, reasons: list[dict]) -> str:
+    top_reasons = "; ".join(_lower_first(r["text"].rstrip(".")) for r in reasons[:2])
     return (
         f"Borrower {borrower_id} ({segment} segment, exposure at risk Rs {exposure:,.0f}) is "
         f"currently scored {pd_score:.0f}/100, placing the account in the {band} band. "
@@ -38,7 +38,7 @@ def build_summary(borrower_id: int, segment: str, exposure: float, pd_score: flo
     )
 
 
-def build_memo(borrower_id: int, segment: str, exposure: float, pd_score: float, band: str, reasons: list[str]) -> dict:
+def build_memo(borrower_id: int, segment: str, exposure: float, pd_score: float, band: str, reasons: list[dict]) -> dict:
     summary = build_summary(borrower_id, segment, exposure, pd_score, band, reasons)
     memo_id = f"{borrower_id}_{int(time.time())}"
     return {
@@ -101,7 +101,8 @@ def render_pdf(memo: dict) -> Path:
         Paragraph("Top Reason Codes", heading_style),
     ]
     for r in memo["reason_codes"]:
-        story.append(Paragraph(f"&bull; {_escape(r)}", body_style))
+        tag = " [unstructured signal]" if r.get("is_nlp") else ""
+        story.append(Paragraph(f"&bull; {_escape(r['text'])}{tag}", body_style))
     story.append(Spacer(1, 12))
     story.append(Paragraph("Recommended Intervention", heading_style))
     story.append(Paragraph(_escape(memo["recommended_intervention"]), body_style))

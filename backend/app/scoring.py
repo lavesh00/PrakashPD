@@ -8,6 +8,7 @@ and the what-if simulator. This module just adds the book-level bookkeeping
 """
 from __future__ import annotations
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -128,3 +129,62 @@ class ScoringService:
         result["new_pd_score"] = round(result["new_pd_score"], 1)
         result["delta"] = round(result["delta"], 1)
         return result
+
+    def model_performance(self) -> dict:
+        with open(ARTIFACT_DIR / "metrics_report.json") as f:
+            metrics = json.load(f)
+        importance = self.engine.feature_importance(top_n=15)
+        return {
+            "auc": metrics["auc"],
+            "gini": metrics["gini"],
+            "ks_statistic": metrics["ks_statistic"],
+            "recall_at_top_20pct": metrics["recall_at_top_20pct"],
+            "n_train": metrics["n_train"],
+            "n_test": metrics["n_test"],
+            "test_default_rate": metrics["test_default_rate"],
+            "band_thresholds": metrics["band_thresholds"],
+            "band_distribution_test": metrics["band_distribution_test"],
+            "feature_importance": importance,
+            "note": metrics["note"],
+        }
+
+    def portfolio_stress_test(self, scenario: str, magnitude: float) -> dict:
+        stressed = self.engine.stress_test(scenario, magnitude).set_index("borrower_id", drop=False)
+        merged = self.book[["band", "exposure_at_risk"]].join(
+            stressed[["band"]], rsuffix="_after"
+        )
+        merged = merged.rename(columns={"band": "band_before", "band_after": "band_after"})
+
+        def _by_band(col: str) -> dict:
+            return {b: int(v) for b, v in merged[col].value_counts().to_dict().items()}
+
+        def _exposure_by_band(col: str) -> dict:
+            grouped = merged.groupby(col)["exposure_at_risk"].sum()
+            return {b: round(float(v), 2) for b, v in grouped.to_dict().items()}
+
+        newly_high = merged[(merged["band_before"] != "High") & (merged["band_after"] == "High")]
+
+        return {
+            "scenario": scenario,
+            "magnitude": magnitude,
+            "band_counts_before": _by_band("band_before"),
+            "band_counts_after": _by_band("band_after"),
+            "exposure_before": _exposure_by_band("band_before"),
+            "exposure_after": _exposure_by_band("band_after"),
+            "newly_high_count": int(len(newly_high)),
+            "newly_high_exposure": round(float(newly_high["exposure_at_risk"].sum()), 2),
+            "total_exposure": round(float(merged["exposure_at_risk"].sum()), 2),
+        }
+
+    def settings(self) -> dict:
+        config = self.engine.config
+        return {
+            "band_thresholds": config["band_thresholds"],
+            "gbm_blend_weight": config["gbm_blend_weight"],
+            "cox_blend_weight": config["cox_blend_weight"],
+            "cox_horizon_duration": config["cox_horizon_duration"],
+            "embedding_model": config["embedding_model"],
+            "segments": sorted(self.book["segment"].unique().tolist()),
+            "total_borrowers": int(len(self.book)),
+            "last_scored_at": self.last_scored_at,
+        }

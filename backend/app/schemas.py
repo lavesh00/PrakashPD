@@ -3,6 +3,11 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
+class ReasonCode(BaseModel):
+    text: str
+    is_nlp: bool = False
+
+
 class WatchlistItem(BaseModel):
     borrower_id: int
     segment: str
@@ -25,7 +30,7 @@ class LoanDetail(BaseModel):
     band: str
     exposure_at_risk: float
     rm_note: str
-    reason_codes: list[str]
+    reason_codes: list[ReasonCode]
     recommended_action: str
 
 
@@ -74,7 +79,7 @@ class NewLoanRequest(BaseModel):
 class ScoreResponse(BaseModel):
     pd_score: float
     band: str
-    reason_codes: list[str]
+    reason_codes: list[ReasonCode]
     recommended_action: str
 
 
@@ -108,8 +113,65 @@ class MemoResponse(BaseModel):
     exposure_at_risk: float
     pd_score: float
     band: str
-    reason_codes: list[str]
+    reason_codes: list[ReasonCode]
     recommended_intervention: str
     summary: str
     generated_at: str
     pdf_url: str
+
+
+# ---------- model performance ----------
+
+
+class FeatureImportanceEntry(BaseModel):
+    feature: str
+    importance_pct: float
+    is_nlp: bool
+
+
+class ModelPerformanceResponse(BaseModel):
+    auc: float
+    gini: float
+    ks_statistic: float
+    recall_at_top_20pct: float
+    n_train: int
+    n_test: int
+    test_default_rate: float
+    band_thresholds: dict[str, float]
+    band_distribution_test: dict[str, float]
+    feature_importance: list[FeatureImportanceEntry]
+    note: str
+
+
+# ---------- portfolio stress test ----------
+
+
+class StressTestRequest(BaseModel):
+    scenario: Literal["utilization_shock", "delinquency_shock"]
+    magnitude: float = Field(..., description="Percent for utilization_shock, notches for delinquency_shock")
+
+
+class StressTestResponse(BaseModel):
+    scenario: str
+    magnitude: float
+    band_counts_before: dict[str, int]
+    band_counts_after: dict[str, int]
+    exposure_before: dict[str, float]
+    exposure_after: dict[str, float]
+    newly_high_count: int
+    newly_high_exposure: float
+    total_exposure: float
+
+
+# ---------- settings / system configuration ----------
+
+
+class SettingsResponse(BaseModel):
+    band_thresholds: dict[str, float]
+    gbm_blend_weight: float
+    cox_blend_weight: float
+    cox_horizon_duration: float
+    embedding_model: str
+    segments: list[str]
+    total_borrowers: int
+    last_scored_at: float
