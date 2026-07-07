@@ -1,9 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchLoanDetail } from "../api";
 import type { LoanDetail } from "../types";
 import BandTag from "../components/BandTag";
 import ScoreBar from "../components/ScoreBar";
+import ReasonCodeList from "../components/ReasonCodeList";
+import Section from "../components/Section";
 import WhatIfPanel from "../components/WhatIfPanel";
 import MemoPanel from "../components/MemoPanel";
 
@@ -27,39 +29,39 @@ export default function ScoreDetail({
 
   if (error) {
     return (
-      <div className="mono">
-        <Link to="/">&larr; BACK TO WATCHLIST</Link>
-        <p style={{ color: "var(--high)" }}>{error}</p>
+      <div>
+        <Link to="/" style={{ fontSize: 12, color: "var(--text-dim)" }}>
+          &larr; Back to watchlist
+        </Link>
+        <p style={{ color: "var(--text)" }}>{error}</p>
       </div>
     );
   }
 
   if (!detail) {
     return (
-      <div className="mono">
-        <Link to="/">&larr; BACK TO WATCHLIST</Link>
-        <p style={{ color: "var(--text-dim)" }}>LOADING…</p>
+      <div>
+        <Link to="/" style={{ fontSize: 12, color: "var(--text-dim)" }}>
+          &larr; Back to watchlist
+        </Link>
+        <p style={{ color: "var(--text-dim)" }}>Loading…</p>
       </div>
     );
   }
 
   return (
     <div style={{ maxWidth: 1400 }}>
-      <Link to="/" className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-        &larr; BACK TO WATCHLIST
+      <Link to="/" style={{ fontSize: 12, color: "var(--text-dim)" }}>
+        &larr; Back to watchlist
       </Link>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0 20px" }}>
-        <h1 className="mono" style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-          BORROWER #{detail.borrower_id}
-        </h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Borrower #{detail.borrower_id}</h1>
         <BandTag band={detail.band} />
-        <span className="mono" style={{ fontSize: 12, color: "var(--text-dim)" }}>
-          {detail.segment.toUpperCase()}
-        </span>
+        <span style={{ fontSize: 13, color: "var(--text-dim)" }}>{detail.segment}</span>
       </div>
 
-      <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 20, marginBottom: 16 }}>
+      <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 24, marginBottom: 16 }}>
         <ScoreBar
           score={detail.pd_score}
           band={detail.band}
@@ -68,31 +70,25 @@ export default function ScoreDetail({
         />
       </div>
 
-      <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-        <Stat label="EXPOSURE AT RISK" value={detail.exposure_at_risk.toLocaleString("en-IN", { maximumFractionDigits: 0 })} />
-        <Stat label="SEGMENT" value={detail.segment} />
-        <Stat label="BAND" value={detail.band} />
+      <div style={{ display: "flex", gap: 1, marginBottom: 20, border: "1px solid var(--border)", background: "var(--border)" }}>
+        <Stat label="Exposure at risk" value={detail.exposure_at_risk.toLocaleString("en-IN", { maximumFractionDigits: 0 })} />
+        <Stat label="Segment" value={detail.segment} />
+        <Stat label="Band" value={detail.band} />
       </div>
 
       <div className="detail-grid">
         <div>
-          <Section title="TOP REASON CODES">
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {detail.reason_codes.map((r, i) => (
-                <li key={i} style={{ marginBottom: 6, lineHeight: 1.5 }}>
-                  {r}
-                </li>
-              ))}
-            </ul>
+          <Section title="Top reason codes">
+            <ReasonCodeList reasons={detail.reason_codes} />
           </Section>
 
-          <Section title="RM NOTE">
+          <Section title="RM note (unstructured signal)">
             <p style={{ margin: 0, fontStyle: "italic", color: "var(--text-dim)" }}>&ldquo;{detail.rm_note}&rdquo;</p>
           </Section>
         </div>
 
         <div>
-          <Section title="RECOMMENDED ACTION" accent>
+          <Section title="Recommended action" accent>
             <p style={{ margin: 0 }}>{detail.recommended_action}</p>
           </Section>
 
@@ -107,40 +103,12 @@ export default function ScoreDetail({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ flex: 1, border: "1px solid var(--border)", background: "var(--panel)", padding: "10px 14px" }}>
-      <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4 }}>
-        {label}
-      </div>
-      <div className="mono" style={{ fontSize: 14, fontWeight: 700 }}>
+    <div style={{ flex: 1, background: "var(--panel)", padding: "12px 16px" }}>
+      <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 4 }}>{label}</div>
+      <div className="num" style={{ fontSize: 15, fontWeight: 700 }}>
         {value}
       </div>
     </div>
   );
 }
 
-function Section({ title, children, accent }: { title: string; children: ReactNode; accent?: boolean }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${accent ? "var(--orange)" : "var(--border)"}`,
-        background: "var(--panel)",
-        padding: 16,
-        marginBottom: 16,
-      }}
-    >
-      <div
-        className="mono"
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.05em",
-          color: accent ? "var(--orange-bright)" : "var(--text-dim)",
-          marginBottom: 10,
-        }}
-      >
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}

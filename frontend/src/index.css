@@ -1,20 +1,22 @@
 :root {
-  --bg: #0b120e;
-  --panel: #101a14;
-  --panel-alt: #141f19;
-  --border: #24352c;
-  --text: #d9e2dc;
-  --text-dim: #8a9990;
-  --green: #1f6f4a;
-  --green-bright: #2fa86a;
-  --orange: #d9711a;
-  --orange-bright: #ff8a33;
-  --red: #c23b2b;
-  --watch: #4a7a63;
-  --elevated: #d9711a;
-  --high: #c23b2b;
-  --font-mono: "Consolas", "SFMono-Regular", ui-monospace, monospace;
-  --font-sans: "Segoe UI", Roboto, sans-serif;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-alt: #fafafa;
+  --border: #e2e2e2;
+  --border-strong: #cfcfcf;
+  --text: #16181c;
+  --text-dim: #6b7280;
+  --text-faint: #9aa0a6;
+
+  /* one accent, used sparingly: primary actions and the single most
+     important risk state (High). everything else stays grayscale. */
+  --accent: #1e6b45;
+  --accent-strong: #14502f;
+  --accent-soft: #eaf3ee;
+
+  --elevated-fill: #4b4b4b;
+
+  --font-sans: "Segoe UI", system-ui, Roboto, sans-serif;
 }
 
 * {
@@ -41,6 +43,12 @@ a {
 button {
   font-family: var(--font-sans);
   cursor: pointer;
+  border-radius: 0;
+}
+
+input, select, textarea {
+  font-family: var(--font-sans);
+  border-radius: 0;
 }
 
 table {
@@ -48,8 +56,8 @@ table {
   width: 100%;
 }
 
-.mono {
-  font-family: var(--font-mono);
+.num {
+  font-variant-numeric: tabular-nums;
 }
 
 .detail-grid {

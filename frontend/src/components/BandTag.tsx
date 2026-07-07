@@ -1,27 +1,33 @@
 import type { Band } from "../types";
 
-const COLORS: Record<Band, string> = {
-  Watch: "var(--watch)",
-  Elevated: "var(--elevated)",
-  High: "var(--high)",
+const MARKER: Record<Band, { background: string; border: string }> = {
+  Watch: { background: "transparent", border: "var(--border-strong)" },
+  Elevated: { background: "var(--elevated-fill)", border: "var(--elevated-fill)" },
+  High: { background: "var(--accent)", border: "var(--accent)" },
 };
 
 export default function BandTag({ band }: { band: Band }) {
+  const marker = MARKER[band] ?? MARKER.Watch;
   return (
-    <span
-      className="mono"
-      style={{
-        display: "inline-block",
-        padding: "2px 8px",
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.05em",
-        textTransform: "uppercase",
-        color: "#0b120e",
-        background: COLORS[band] ?? "var(--watch)",
-      }}
-    >
-      {band}
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <span
+        style={{
+          width: 9,
+          height: 9,
+          background: marker.background,
+          border: `1px solid ${marker.border}`,
+          flexShrink: 0,
+        }}
+      />
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: band === "High" ? 700 : 500,
+          color: band === "High" ? "var(--accent)" : "var(--text)",
+        }}
+      >
+        {band}
+      </span>
     </span>
   );
 }

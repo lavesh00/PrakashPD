@@ -1,14 +1,26 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { fetchSummary, triggerRescore } from "./api";
 import type { SummaryResponse } from "./types";
 import Watchlist from "./pages/Watchlist";
 import ScoreDetail from "./pages/ScoreDetail";
 import ScoreNewLoan from "./pages/ScoreNewLoan";
+import ModelPerformance from "./pages/ModelPerformance";
+import PortfolioStressTest from "./pages/PortfolioStressTest";
+import Settings from "./pages/Settings";
+
+const NAV_ITEMS = [
+  { label: "Watchlist", to: "/" },
+  { label: "Score a new loan", to: "/score-new" },
+  { label: "Model performance", to: "/model-performance" },
+  { label: "Portfolio stress test", to: "/stress-test" },
+  { label: "Settings", to: "/settings" },
+];
 
 export default function App() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [rescoring, setRescoring] = useState(false);
+  const location = useLocation();
 
   const loadSummary = () => {
     fetchSummary().then(setSummary).catch(() => setSummary(null));
@@ -34,91 +46,77 @@ export default function App() {
         style={{
           borderBottom: "1px solid var(--border)",
           background: "var(--panel)",
-          padding: "12px 24px",
+          padding: "14px 24px",
           display: "flex",
-          flexWrap: "wrap",
           alignItems: "center",
-          gap: 24,
-          rowGap: 10,
+          gap: 10,
         }}
       >
-        <Link to="/" style={{ textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
-          <span
-            className="mono"
-            style={{ fontSize: 16, fontWeight: 700, color: "var(--orange-bright)", letterSpacing: "0.05em" }}
-          >
-            PRAKASHPD
-          </span>
-          <span className="mono" style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 8 }}>
-            DEFAULT PREDICTION CONSOLE
-          </span>
+        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 20, height: 20, background: "var(--text)", flexShrink: 0 }} />
+          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>PrakashPD</span>
         </Link>
-
-        <Link
-          to="/score-new"
-          className="mono"
-          style={{ fontSize: 11, color: "var(--text-dim)", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}
-        >
-          SCORE A NEW LOAN
-        </Link>
-
-        <div style={{ flex: 1, minWidth: 0 }} />
-
-        {summary && (
-          <div
-            className="mono"
-            style={{ display: "flex", flexWrap: "wrap", rowGap: 4, gap: 20, fontSize: 11, color: "var(--text-dim)" }}
-          >
-            <span style={{ whiteSpace: "nowrap" }}>
-              BORROWERS <b style={{ color: "var(--text)" }}>{summary.total_borrowers.toLocaleString()}</b>
-            </span>
-            <span style={{ whiteSpace: "nowrap" }}>
-              EXPOSURE <b style={{ color: "var(--text)" }}>
-                {(summary.total_exposure / 10000000).toFixed(1)} Cr
-              </b>
-            </span>
-            <span style={{ color: "var(--high)", whiteSpace: "nowrap" }}>
-              HIGH <b>{summary.band_counts.High ?? 0}</b>
-            </span>
-            <span style={{ color: "var(--elevated)", whiteSpace: "nowrap" }}>
-              ELEVATED <b>{summary.band_counts.Elevated ?? 0}</b>
-            </span>
-            <span style={{ color: "var(--watch)", whiteSpace: "nowrap" }}>
-              WATCH <b>{summary.band_counts.Watch ?? 0}</b>
-            </span>
-          </div>
-        )}
-
-        <button
-          onClick={handleRescore}
-          disabled={rescoring}
-          className="mono"
-          style={{
-            background: "var(--orange)",
-            color: "#0b120e",
-            border: "none",
-            padding: "8px 14px",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.05em",
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
-        >
-          {rescoring ? "RESCORING…" : "TRIGGER OVERNIGHT RESCORE"}
-        </button>
+        <div style={{ flex: 1 }} />
+        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>RM officer</span>
       </header>
 
-      <main style={{ flex: 1, padding: 24 }}>
-        <Routes>
-          <Route
-            path="/"
-            element={<Watchlist bandThresholds={summary?.band_thresholds} segments={summary?.segments ?? []} />}
-          />
-          <Route path="/loans/:borrowerId" element={<ScoreDetail bandThresholds={summary?.band_thresholds} />} />
-          <Route path="/score-new" element={<ScoreNewLoan bandThresholds={summary?.band_thresholds} />} />
-        </Routes>
-      </main>
+      <div style={{ flex: 1, display: "flex" }}>
+        <nav
+          style={{
+            width: 200,
+            flexShrink: 0,
+            borderRight: "1px solid var(--border)",
+            background: "var(--panel)",
+            padding: "20px 0",
+          }}
+        >
+          {NAV_ITEMS.map((item) => {
+            const active = location.pathname === item.to;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  textDecoration: "none",
+                  padding: "9px 20px",
+                  fontSize: 13,
+                  fontWeight: active ? 600 : 400,
+                  color: active ? "var(--text)" : "var(--text-dim)",
+                  background: active ? "var(--accent-soft)" : "transparent",
+                  borderLeft: `2px solid ${active ? "var(--accent)" : "transparent"}`,
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <main style={{ flex: 1, padding: 28, minWidth: 0 }}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Watchlist
+                  bandThresholds={summary?.band_thresholds}
+                  segments={summary?.segments ?? []}
+                  summary={summary}
+                  onRescore={handleRescore}
+                  rescoring={rescoring}
+                />
+              }
+            />
+            <Route path="/loans/:borrowerId" element={<ScoreDetail bandThresholds={summary?.band_thresholds} />} />
+            <Route path="/score-new" element={<ScoreNewLoan bandThresholds={summary?.band_thresholds} />} />
+            <Route path="/model-performance" element={<ModelPerformance />} />
+            <Route path="/stress-test" element={<PortfolioStressTest />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }

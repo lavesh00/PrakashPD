@@ -22,55 +22,47 @@ export default function MemoPanel({ borrowerId }: { borrowerId: number }) {
   };
 
   return (
-    <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 16, marginBottom: 16 }}>
+    <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 18, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", color: "var(--text-dim)" }}>
-          ACTION MEMO
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)" }}>Action memo</div>
         <div style={{ flex: 1 }} />
         <button
-          className="mono"
           onClick={generate}
           disabled={loading}
           style={{
-            background: "var(--orange)",
-            color: "#0b120e",
+            background: "var(--accent)",
+            color: "#ffffff",
             border: "none",
-            padding: "8px 14px",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.05em",
+            padding: "8px 16px",
+            fontSize: 12,
+            fontWeight: 600,
           }}
         >
-          {loading ? "GENERATING…" : "GENERATE MEMO"}
+          {loading ? "Generating…" : "Generate memo"}
         </button>
       </div>
 
-      {error && <p className="mono" style={{ color: "var(--high)", fontSize: 11, marginTop: 8 }}>{error}</p>}
+      {error && <p style={{ color: "var(--text)", fontSize: 12, marginTop: 8 }}>{error}</p>}
 
       {memo && (
         <div style={{ marginTop: 12 }}>
           <p style={{ margin: "0 0 12px", lineHeight: 1.6 }}>{memo.summary}</p>
-          <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 8 }}>
-            Generated {memo.generated_at}
-          </div>
+          <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 10 }}>Generated {memo.generated_at}</div>
           <a
-            className="mono"
             href={memoDownloadUrl(memo.pdf_url)}
             target="_blank"
             rel="noreferrer"
             style={{
               display: "inline-block",
-              border: "1px solid var(--orange)",
-              color: "var(--orange-bright)",
-              padding: "8px 14px",
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.05em",
+              border: "1px solid var(--border-strong)",
+              color: "var(--text)",
+              padding: "8px 16px",
+              fontSize: 12,
+              fontWeight: 600,
               textDecoration: "none",
             }}
           >
-            DOWNLOAD PDF
+            Download PDF
           </a>
         </div>
       )}

@@ -3,6 +3,8 @@ import { scoreNewLoan } from "../api";
 import type { NewLoanRequest, RepaymentHistory, ScoreResponse } from "../types";
 import BandTag from "../components/BandTag";
 import ScoreBar from "../components/ScoreBar";
+import ReasonCodeList from "../components/ReasonCodeList";
+import Section from "../components/Section";
 
 const SEGMENTS = ["Retail Personal", "Credit Card", "Consumer Durable", "SME", "Agri"];
 
@@ -72,46 +74,44 @@ export default function ScoreNewLoan({
   return (
     <div style={{ maxWidth: 900 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <h1 className="mono" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.05em", margin: 0 }}>
-          SCORE A NEW LOAN
-        </h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Score a new loan</h1>
         <div style={{ flex: 1 }} />
-        <button className="mono" style={presetStyle} onClick={() => { setForm(HIGH_RISK_EXAMPLE); setResult(null); }}>
-          LOAD HIGH-RISK EXAMPLE
+        <button style={presetStyle} onClick={() => { setForm(HIGH_RISK_EXAMPLE); setResult(null); }}>
+          Load high-risk example
         </button>
-        <button className="mono" style={presetStyle} onClick={() => { setForm(LOW_RISK_EXAMPLE); setResult(null); }}>
-          LOAD LOW-RISK EXAMPLE
+        <button style={presetStyle} onClick={() => { setForm(LOW_RISK_EXAMPLE); setResult(null); }}>
+          Load low-risk example
         </button>
       </div>
 
-      <p className="mono" style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 20 }}>
+      <p style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, marginBottom: 20 }}>
         This runs the real trained model live. Loan amount, age, repayment history, utilization,
-        existing EMI, segment and the RM note all map onto trained features. Tenure and annual
-        income are collected for context/memo purposes only — this model was trained on revolving
-        credit-history data, which has no native "tenure" or "income" feature, so those two fields
-        do not affect the score (see README).
+        existing EMI, segment, and the RM note all map onto trained features. Tenure and annual
+        income are collected for context and memo purposes only. This model was trained on
+        revolving credit history data, which has no native tenure or income feature, so those two
+        fields do not affect the score (see README).
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 20 }}>
-          <Field label="LOAN AMOUNT / CREDIT LIMIT (Rs)">
-            <input className="mono" style={inputStyle} type="number" value={form.loan_amount}
+          <Field label="Loan amount / credit limit (Rs)">
+            <input style={inputStyle} type="number" value={form.loan_amount}
               onChange={(e) => set("loan_amount", Number(e.target.value))} />
           </Field>
-          <Field label="BORROWER AGE">
-            <input className="mono" style={inputStyle} type="number" value={form.age}
+          <Field label="Borrower age">
+            <input style={inputStyle} type="number" value={form.age}
               onChange={(e) => set("age", Number(e.target.value))} />
           </Field>
-          <Field label="TENURE (MONTHS) — context only, not a trained feature">
-            <input className="mono" style={inputStyle} type="number" value={form.tenure_months}
+          <Field label="Tenure in months, context only, not a trained feature">
+            <input style={inputStyle} type="number" value={form.tenure_months}
               onChange={(e) => set("tenure_months", Number(e.target.value))} />
           </Field>
-          <Field label="ANNUAL INCOME (Rs) — context only, not a trained feature">
-            <input className="mono" style={inputStyle} type="number" value={form.annual_income ?? ""}
+          <Field label="Annual income (Rs), context only, not a trained feature">
+            <input style={inputStyle} type="number" value={form.annual_income ?? ""}
               onChange={(e) => set("annual_income", e.target.value ? Number(e.target.value) : undefined)} />
           </Field>
-          <Field label="SEGMENT">
-            <select className="mono" style={inputStyle} value={form.segment}
+          <Field label="Segment">
+            <select style={inputStyle} value={form.segment}
               onChange={(e) => set("segment", e.target.value)}>
               {SEGMENTS.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -121,50 +121,48 @@ export default function ScoreNewLoan({
         </div>
 
         <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 20 }}>
-          <Field label="EXISTING / EXPECTED EMI (Rs per month)">
-            <input className="mono" style={inputStyle} type="number" value={form.existing_emi}
+          <Field label="Existing or expected EMI (Rs per month)">
+            <input style={inputStyle} type="number" value={form.existing_emi}
               onChange={(e) => set("existing_emi", Number(e.target.value))} />
           </Field>
-          <Field label="CREDIT UTILIZATION (% OF LIMIT)">
-            <input className="mono" style={inputStyle} type="number" value={form.credit_utilization_pct}
+          <Field label="Credit utilization (% of limit)">
+            <input style={inputStyle} type="number" value={form.credit_utilization_pct}
               onChange={(e) => set("credit_utilization_pct", Number(e.target.value))} />
           </Field>
-          <Field label="REPAYMENT HISTORY (LAST 6 CYCLES)">
-            <select className="mono" style={inputStyle} value={form.repayment_history}
+          <Field label="Repayment history, last 6 cycles">
+            <select style={inputStyle} value={form.repayment_history}
               onChange={(e) => set("repayment_history", e.target.value as RepaymentHistory)}>
-              <option value="clean">Clean — paid duly</option>
-              <option value="minor_delay">Minor delay — ~1 month late pattern</option>
-              <option value="moderate_delay">Moderate delay — ~2 months late pattern</option>
-              <option value="severe_delinquency">Severe delinquency — 4+ months late pattern</option>
+              <option value="clean">Clean, paid duly</option>
+              <option value="minor_delay">Minor delay, about 1 month late pattern</option>
+              <option value="moderate_delay">Moderate delay, about 2 months late pattern</option>
+              <option value="severe_delinquency">Severe delinquency, 4+ months late pattern</option>
             </select>
           </Field>
-          <Field label="RM NOTE / TRANSACTION NARRATIVE (FREE TEXT)">
-            <textarea className="mono" style={{ ...inputStyle, height: 84, resize: "vertical" }} value={form.rm_note}
+          <Field label="RM note or transaction narrative, free text (unstructured signal)">
+            <textarea style={{ ...inputStyle, height: 84, resize: "vertical" }} value={form.rm_note}
               onChange={(e) => set("rm_note", e.target.value)} />
           </Field>
         </div>
       </div>
 
       <button
-        className="mono"
         onClick={submit}
         disabled={loading}
         style={{
           marginTop: 16,
-          background: "var(--orange)",
-          color: "#0b120e",
+          background: "var(--accent)",
+          color: "#ffffff",
           border: "none",
-          padding: "10px 20px",
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: "0.05em",
+          padding: "11px 22px",
+          fontSize: 13,
+          fontWeight: 600,
         }}
       >
-        {loading ? "SCORING…" : "SCORE THIS LOAN"}
+        {loading ? "Scoring…" : "Score this loan"}
       </button>
 
       {error && (
-        <p className="mono" style={{ color: "var(--high)", marginTop: 12 }}>
+        <p style={{ color: "var(--text)", marginTop: 12 }}>
           {error}
         </p>
       )}
@@ -173,11 +171,9 @@ export default function ScoreNewLoan({
         <div style={{ marginTop: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
             <BandTag band={result.band} />
-            <span className="mono" style={{ fontSize: 12, color: "var(--text-dim)" }}>
-              LIVE MODEL OUTPUT
-            </span>
+            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>Live model output</span>
           </div>
-          <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 20, marginBottom: 16 }}>
+          <div style={{ border: "1px solid var(--border)", background: "var(--panel)", padding: 24, marginBottom: 16 }}>
             <ScoreBar
               score={result.pd_score}
               band={result.band}
@@ -185,14 +181,10 @@ export default function ScoreNewLoan({
               elevatedCut={bandThresholds?.elevated ?? 30}
             />
           </div>
-          <Section title="TOP REASON CODES">
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {result.reason_codes.map((r, i) => (
-                <li key={i} style={{ marginBottom: 6, lineHeight: 1.5 }}>{r}</li>
-              ))}
-            </ul>
+          <Section title="Top reason codes">
+            <ReasonCodeList reasons={result.reason_codes} />
           </Section>
-          <Section title="RECOMMENDED ACTION" accent>
+          <Section title="Recommended action" accent>
             <p style={{ margin: 0 }}>{result.recommended_action}</p>
           </Section>
         </div>
@@ -204,35 +196,8 @@ export default function ScoreNewLoan({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 4 }}>
         {label}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Section({ title, children, accent }: { title: string; children: ReactNode; accent?: boolean }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${accent ? "var(--orange)" : "var(--border)"}`,
-        background: "var(--panel)",
-        padding: 16,
-        marginBottom: 16,
-      }}
-    >
-      <div
-        className="mono"
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.05em",
-          color: accent ? "var(--orange-bright)" : "var(--text-dim)",
-          marginBottom: 10,
-        }}
-      >
-        {title}
       </div>
       {children}
     </div>
@@ -241,17 +206,17 @@ function Section({ title, children, accent }: { title: string; children: ReactNo
 
 const inputStyle: CSSProperties = {
   width: "100%",
-  background: "var(--panel-alt)",
+  background: "var(--panel)",
   color: "var(--text)",
   border: "1px solid var(--border)",
-  padding: "6px 8px",
-  fontSize: 12,
+  padding: "7px 9px",
+  fontSize: 13,
 };
 
 const presetStyle: CSSProperties = {
-  background: "var(--panel-alt)",
+  background: "var(--panel)",
   color: "var(--text)",
-  border: "1px solid var(--border)",
-  padding: "6px 10px",
-  fontSize: 11,
+  border: "1px solid var(--border-strong)",
+  padding: "7px 12px",
+  fontSize: 12,
 };
