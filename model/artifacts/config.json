@@ -1,0 +1,64 @@
+{
+  "numeric_features": [
+    "LIMIT_BAL",
+    "AGE",
+    "PAY_1",
+    "PAY_2",
+    "PAY_3",
+    "PAY_4",
+    "PAY_5",
+    "PAY_6",
+    "BILL_AMT1",
+    "BILL_AMT2",
+    "BILL_AMT3",
+    "BILL_AMT4",
+    "BILL_AMT5",
+    "BILL_AMT6",
+    "PAY_AMT1",
+    "PAY_AMT2",
+    "PAY_AMT3",
+    "PAY_AMT4",
+    "PAY_AMT5",
+    "PAY_AMT6",
+    "util_ratio_1",
+    "avg_util_ratio",
+    "avg_pay_ratio",
+    "months_delinquent",
+    "max_delinquency",
+    "delinquency_trend",
+    "bill_trend"
+  ],
+  "categorical_features": [
+    "SEX",
+    "EDUCATION",
+    "MARRIAGE",
+    "segment"
+  ],
+  "nlp_features": [
+    "nlp_svd_0",
+    "nlp_svd_1",
+    "nlp_svd_2",
+    "nlp_svd_3",
+    "nlp_svd_4",
+    "nlp_svd_5",
+    "nlp_svd_6",
+    "nlp_svd_7"
+  ],
+  "cox_covariates": [
+    "LIMIT_BAL",
+    "AGE",
+    "avg_util_ratio",
+    "avg_pay_ratio",
+    "months_delinquent",
+    "max_delinquency",
+    "delinquency_trend",
+    "nlp_svd_0"
+  ],
+  "gbm_blend_weight": 0.7,
+  "cox_blend_weight": 0.3,
+  "cox_horizon_duration": 6.0,
+  "band_thresholds": {
+    "high": 68.6046511627907,
+    "elevated": 31.38093202223172
+  }
+}

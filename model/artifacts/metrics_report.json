@@ -1,0 +1,19 @@
+{
+  "auc": 0.7787690470042963,
+  "gini": 0.5575380940085926,
+  "ks_statistic": 0.42814186781223174,
+  "recall_at_top_20pct": 0.5152969406118776,
+  "n_train": 22434,
+  "n_test": 7566,
+  "test_default_rate": 0.22032778218345228,
+  "band_thresholds": {
+    "high": 68.6046511627907,
+    "elevated": 31.38093202223172
+  },
+  "band_distribution_test": {
+    "Watch": 0.6456515992598467,
+    "Elevated": 0.25535289452815224,
+    "High": 0.09899550621200105
+  },
+  "note": "AUC/Gini/KS/recall@20% reported instead of accuracy because the target is a ~22% base-rate rare event; a trivial all-negative classifier scores ~78% accuracy while capturing zero defaulters. OOT split uses a simulated loan-vintage field (see notebook) since the source dataset has no real date field."
+}
