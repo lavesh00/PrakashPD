@@ -1,0 +1,66 @@
+:root {
+  --bg: #0b120e;
+  --panel: #101a14;
+  --panel-alt: #141f19;
+  --border: #24352c;
+  --text: #d9e2dc;
+  --text-dim: #8a9990;
+  --green: #1f6f4a;
+  --green-bright: #2fa86a;
+  --orange: #d9711a;
+  --orange-bright: #ff8a33;
+  --red: #c23b2b;
+  --watch: #4a7a63;
+  --elevated: #d9711a;
+  --high: #c23b2b;
+  --font-mono: "Consolas", "SFMono-Regular", ui-monospace, monospace;
+  --font-sans: "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
