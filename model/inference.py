@@ -29,6 +29,7 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import shap
+from sentence_transformers import SentenceTransformer
 
 ROOT = Path(__file__).parent
 ARTIFACT_DIR = ROOT / "artifacts"
@@ -58,8 +59,8 @@ class ScoringEngine:
         self.booster = lgb.Booster(model_file=str(ARTIFACT_DIR / "gbm_model.txt"))
         self.tree_explainer = shap.TreeExplainer(self.booster)
         self.cph = joblib.load(ARTIFACT_DIR / "cox_model.joblib")
-        self.tfidf = joblib.load(ARTIFACT_DIR / "tfidf.joblib")
-        self.svd = joblib.load(ARTIFACT_DIR / "svd.joblib")
+        self.embedder = SentenceTransformer(self.config["embedding_model"])
+        self.pca = joblib.load(ARTIFACT_DIR / "nlp_pca.joblib")
         self.isotonic = joblib.load(ARTIFACT_DIR / "isotonic.joblib")
         scaler = joblib.load(ARTIFACT_DIR / "cox_scaler.joblib")
         self.cox_mean, self.cox_std = scaler["mean"], scaler["std"]
@@ -123,8 +124,8 @@ class ScoringEngine:
         return X
 
     def _nlp_features(self, rm_note: str) -> pd.DataFrame:
-        matrix = self.tfidf.transform([rm_note or ""])
-        components = self.svd.transform(matrix)
+        embedding = self.embedder.encode([rm_note or ""], show_progress_bar=False)
+        components = self.pca.transform(embedding)
         return pd.DataFrame(components, columns=self.nlp_features)
 
     def _rank_against_reference(self, value: float, reference_sorted: np.ndarray) -> float:

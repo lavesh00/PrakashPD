@@ -6,7 +6,8 @@ values for that single row and translates the top 3-4 contributing features
 into plain-language reason strings a credit officer can read without knowing
 what a SHAP value or a raw feature name is.
 
-For the NLP-fusion features (nlp_svd_*), rather than describing an abstract
+For the NLP-fusion features (nlp_emb_*, PCA components of a sentence-
+transformer embedding of the RM note), rather than describing an abstract
 embedding component, the reason code quotes the borrower's actual RM note —
 this is more honest and more useful to a credit officer than "component 3
 contributed 0.04".
@@ -99,7 +100,7 @@ def _reason_for_feature(feature: str, value, shap_value: float, row: pd.Series) 
     if feature in ("SEX", "EDUCATION", "MARRIAGE"):
         return f"Demographic profile factor ({feature.lower()} category {value})"
 
-    if feature.startswith("nlp_svd_"):
+    if feature.startswith("nlp_emb_"):
         note = row.get("rm_note", "")
         if increases_risk:
             return f'RM note content pushed the score higher: "{note}"'

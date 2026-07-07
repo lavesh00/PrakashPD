@@ -35,15 +35,24 @@
     "segment"
   ],
   "nlp_features": [
-    "nlp_svd_0",
-    "nlp_svd_1",
-    "nlp_svd_2",
-    "nlp_svd_3",
-    "nlp_svd_4",
-    "nlp_svd_5",
-    "nlp_svd_6",
-    "nlp_svd_7"
+    "nlp_emb_0",
+    "nlp_emb_1",
+    "nlp_emb_2",
+    "nlp_emb_3",
+    "nlp_emb_4",
+    "nlp_emb_5",
+    "nlp_emb_6",
+    "nlp_emb_7",
+    "nlp_emb_8",
+    "nlp_emb_9",
+    "nlp_emb_10",
+    "nlp_emb_11",
+    "nlp_emb_12",
+    "nlp_emb_13",
+    "nlp_emb_14",
+    "nlp_emb_15"
   ],
+  "embedding_model": "all-MiniLM-L6-v2",
   "cox_covariates": [
     "LIMIT_BAL",
     "AGE",
@@ -52,13 +61,13 @@
     "months_delinquent",
     "max_delinquency",
     "delinquency_trend",
-    "nlp_svd_0"
+    "nlp_emb_0"
   ],
   "gbm_blend_weight": 0.7,
   "cox_blend_weight": 0.3,
   "cox_horizon_duration": 6.0,
   "band_thresholds": {
-    "high": 68.6046511627907,
-    "elevated": 31.38093202223172
+    "high": 61.832061068702295,
+    "elevated": 31.82751540041067
   }
 }

@@ -10,3 +10,4 @@ lightgbm==4.6.0
 lifelines==0.30.3
 shap==0.51.0
 joblib==1.4.2
+sentence-transformers==5.1.2

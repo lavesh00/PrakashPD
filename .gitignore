@@ -10,4 +10,5 @@ venv/
 
 backend/memos/
 uvicorn.log
+.claude/scheduled_tasks.lock
 

@@ -30,9 +30,10 @@ represented by synthetic data and a local FastAPI service instead (see
 
 *This prototype's actual stack is narrower than shown: Python 3.11 + FastAPI
 + pandas (no Polars), scikit-learn/LightGBM/lifelines (no Optuna tuning, no
-scikit-survival), TF-IDF + SVD for the text signal (no Hugging Face
-Transformers/DistilBERT/spaCy), and React + TypeScript + Vite for the
-frontend (no Recharts — the PD gauge is a custom bar component per the
+scikit-survival), a small pretrained sentence-transformer (all-MiniLM-L6-v2)
+for the text signal (no DistilBERT/spaCy, no fine-tuning), and React +
+TypeScript + Vite for the frontend (no Recharts — the PD gauge is a custom
+bar component per the
 brief's "no circular dial" requirement). There is no CIBIL bureau
 integration, PostgreSQL/DuckDB, Docker, or CI pipeline in this prototype —
 data lives in CSV/artifact files on disk, which is appropriate for a
@@ -55,8 +56,8 @@ each simulated field is introduced.
 - All EDA statistics and every feature engineered from the source columns
   (utilization ratios, payment ratios, delinquency counts/trend).
 - The LightGBM classifier, the Cox PH survival model, the isotonic
-  calibration, the TF-IDF+SVD NLP fusion, and the SHAP explainer — all
-  genuinely trained/fitted, not stubbed.
+  calibration, the sentence-transformer + PCA NLP fusion, and the SHAP
+  explainer — all genuinely trained/fitted, not stubbed.
 - All reported metrics (AUC/Gini/KS/recall@20%) are computed on a held-out
   split, not fabricated.
 - Every number the frontend displays comes from a live call to the FastAPI
@@ -72,7 +73,10 @@ each simulated field is introduced.
   generate template-based English notes whose sentiment is correlated with
   each borrower's *real* delinquency trend (not random), so the NLP fusion
   step has genuine signal to find rather than a decorative feature that does
-  nothing.
+  nothing. The notes are embedded with a pretrained sentence-transformer
+  rather than TF-IDF so novel phrasing is recognized by meaning rather than
+  exact vocabulary match, though generalization is still bounded by the size
+  of this synthetic note corpus.
 - **`segment` and `exposure_at_risk`** — the source dataset is single-product
   (credit cards only), not a multi-segment loan book. We assign a synthetic
   segment label (skewed by real `LIMIT_BAL`) to demo the "one scale across
@@ -189,8 +193,9 @@ jupyter nbconvert --to notebook --execute --inplace ../notebooks/01_eda_feature_
 python train.py
 ```
 
-This writes `model/artifacts/` (LightGBM model, Cox model, TF-IDF/SVD,
-isotonic calibrator, config, metrics report, scored book).
+This writes `model/artifacts/` (LightGBM model, Cox model, NLP PCA,
+isotonic calibrator, config, metrics report, scored book). First run needs
+internet once to fetch the sentence-transformer weights (cached locally after).
 
 ### 2. Backend
 
@@ -228,8 +233,8 @@ page.
 ## Modelling approach
 
 1. **LightGBM** classifier on structured features (repayment history,
-   utilization/payment ratios, delinquency trend) plus 8 TF-IDF→SVD
-   components from the RM notes.
+   utilization/payment ratios, delinquency trend) plus 16 sentence-transformer
+   (all-MiniLM-L6-v2) → PCA components from the RM notes.
 2. **Cox Proportional Hazards** (lifelines) on the same borrowers, giving a
    horizon-based hazard estimate instead of a single snapshot probability.
 3. Both outputs are rank-normalized, blended (0.7 GBM / 0.3 Cox), and passed

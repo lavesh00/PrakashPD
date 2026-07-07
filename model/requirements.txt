@@ -7,3 +7,4 @@ shap==0.51.0
 xlrd==2.0.2
 openpyxl==3.1.5
 joblib==1.4.2
+sentence-transformers==5.1.2

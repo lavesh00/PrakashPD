@@ -26,8 +26,8 @@ import numpy as np
 import pandas as pd
 from lifelines import CoxPHFitter
 from lightgbm import LGBMClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import TruncatedSVD
+from sentence_transformers import SentenceTransformer
+from sklearn.decomposition import PCA
 from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import roc_auc_score, roc_curve
 
@@ -35,6 +35,8 @@ ROOT = Path(__file__).parent
 DATA_DIR = ROOT.parent / "data" / "processed"
 ARTIFACT_DIR = ROOT / "artifacts"
 ARTIFACT_DIR.mkdir(exist_ok=True)
+
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 NUMERIC_FEATURES = [
     "LIMIT_BAL", "AGE",
@@ -45,11 +47,11 @@ NUMERIC_FEATURES = [
     "months_delinquent", "max_delinquency", "delinquency_trend", "bill_trend",
 ]
 CATEGORICAL_FEATURES = ["SEX", "EDUCATION", "MARRIAGE", "segment"]
-N_SVD_COMPONENTS = 8
-NLP_FEATURES = [f"nlp_svd_{i}" for i in range(N_SVD_COMPONENTS)]
+N_EMB_COMPONENTS = 16
+NLP_FEATURES = [f"nlp_emb_{i}" for i in range(N_EMB_COMPONENTS)]
 COX_COVARIATES = [
     "LIMIT_BAL", "AGE", "avg_util_ratio", "avg_pay_ratio",
-    "months_delinquent", "max_delinquency", "delinquency_trend", "nlp_svd_0",
+    "months_delinquent", "max_delinquency", "delinquency_trend", "nlp_emb_0",
 ]
 
 
@@ -63,16 +65,22 @@ def load_data():
 
 
 def fit_nlp_pipeline(train_notes: pd.Series):
-    tfidf = TfidfVectorizer(max_features=500, stop_words="english", ngram_range=(1, 2))
-    svd = TruncatedSVD(n_components=N_SVD_COMPONENTS, random_state=42)
-    tfidf_matrix = tfidf.fit_transform(train_notes)
-    svd.fit(tfidf_matrix)
-    return tfidf, svd
+    """Embeds RM notes with a pretrained sentence-transformer (semantic,
+    generalizes to novel phrasing) rather than TF-IDF (bag-of-words, only
+    recognizes vocabulary seen at fit time). PCA then compresses the 384-dim
+    embedding down to a handful of features for the GBM, fit on the training
+    notes' embeddings so the retained directions reflect variance actually
+    present in this dataset."""
+    embedder = SentenceTransformer(EMBEDDING_MODEL_NAME)
+    train_embeddings = embedder.encode(train_notes.tolist(), show_progress_bar=False)
+    pca = PCA(n_components=N_EMB_COMPONENTS, random_state=42)
+    pca.fit(train_embeddings)
+    return embedder, pca
 
 
-def transform_nlp(tfidf, svd, notes: pd.Series) -> pd.DataFrame:
-    matrix = tfidf.transform(notes)
-    components = svd.transform(matrix)
+def transform_nlp(embedder, pca, notes: pd.Series) -> pd.DataFrame:
+    embeddings = embedder.encode(notes.tolist(), show_progress_bar=False)
+    components = pca.transform(embeddings)
     return pd.DataFrame(components, columns=NLP_FEATURES, index=notes.index)
 
 
@@ -109,9 +117,9 @@ def main():
     train, test = load_data()
 
     # --- NLP feature fusion (fit on train notes only) ---
-    tfidf, svd = fit_nlp_pipeline(train["rm_note"])
-    train_nlp = transform_nlp(tfidf, svd, train["rm_note"])
-    test_nlp = transform_nlp(tfidf, svd, test["rm_note"])
+    embedder, pca = fit_nlp_pipeline(train["rm_note"])
+    train_nlp = transform_nlp(embedder, pca, train["rm_note"])
+    test_nlp = transform_nlp(embedder, pca, test["rm_note"])
     train = pd.concat([train, train_nlp], axis=1)
     test = pd.concat([test, test_nlp], axis=1)
 
@@ -216,8 +224,10 @@ def main():
     # --- Save artifacts ---
     gbm.booster_.save_model(str(ARTIFACT_DIR / "gbm_model.txt"))
     joblib.dump(cph, ARTIFACT_DIR / "cox_model.joblib")
-    joblib.dump(tfidf, ARTIFACT_DIR / "tfidf.joblib")
-    joblib.dump(svd, ARTIFACT_DIR / "svd.joblib")
+    # the pretrained sentence-transformer itself is not fine-tuned, so it isn't
+    # saved here — inference re-loads it by name (config.json) from the local
+    # HF cache. Only the PCA fit on our training notes' embeddings is ours.
+    joblib.dump(pca, ARTIFACT_DIR / "nlp_pca.joblib")
     joblib.dump(isotonic, ARTIFACT_DIR / "isotonic.joblib")
     joblib.dump({"mean": cox_mean, "std": cox_std}, ARTIFACT_DIR / "cox_scaler.joblib")
 
@@ -230,6 +240,7 @@ def main():
         "numeric_features": NUMERIC_FEATURES,
         "categorical_features": CATEGORICAL_FEATURES,
         "nlp_features": NLP_FEATURES,
+        "embedding_model": EMBEDDING_MODEL_NAME,
         "cox_covariates": COX_COVARIATES,
         "gbm_blend_weight": 0.7,
         "cox_blend_weight": 0.3,
